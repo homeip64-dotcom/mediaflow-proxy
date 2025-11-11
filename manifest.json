@@ -1,0 +1,15 @@
+﻿{
+  "id": "homeip.unity.mediaflow.proxy",
+  "version": "1.0.5",
+  "name": "Unity MediaFlow Proxy",
+  "description": "Proxy IP France 2025 - Simultané illimité Real-Debrid",
+  "types": ["movie", "series", "channel"],
+  "catalogs": [],
+  "resources": ["catalog", "stream", "meta", "subtitles"],
+  "idPrefixes": [""],
+  "logo": "https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/fr.svg",
+  "behaviorHints": {
+    "adult": false,
+    "configurable": false
+  }
+}
