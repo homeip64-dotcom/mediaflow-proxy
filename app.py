@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, Header, HTTPException, Depends
+﻿from fastapi import FastAPI, Header, HTTPException, Depends, Request
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import os
 
@@ -10,18 +10,21 @@ if not API_PASSWORD:
     raise RuntimeError("API_PASSWORD non défini")
 
 def check_auth(
+    request: Request,
     credentials: HTTPBasicCredentials = Depends(basic),
     authorization: str = Header(None)
 ):
-    # PRIORITÉ BASIC AUTH (Stremio)
+    # 1️⃣ BASIC AUTH (Stremio / navigateur)
     if credentials and credentials.password == API_PASSWORD:
         return True
-    # Fallback Bearer (navigateur)
+    # 2️⃣ BEARER TOKEN (option navigateur)
     if authorization and authorization.startswith("Bearer ") and authorization[7:] == API_PASSWORD:
         return True
-    raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    # 3️⃣ QUERY PARAM (MediaFusion)
+    if request.query_params.get("api_password") == API_PASSWORD:
+        return True
 
-# --- ROUTES ---
+    raise HTTPException(status_code=401, detail="Mot de passe incorrect")
 
 @app.get("/")
 def root(auth = Depends(check_auth)):
@@ -29,10 +32,6 @@ def root(auth = Depends(check_auth)):
 
 @app.get("/proxy/ip")
 def proxy_ip(auth = Depends(check_auth)):
-    """
-    Endpoint utilisé par MediaFusion pour valider le proxy.
-    Retourne simplement un message de confirmation.
-    """
     return {"status": "ok", "message": "Validation MediaFlow réussie"}
 
 @app.get("/manifest.json")
