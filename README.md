@@ -1,6 +1,5 @@
 ﻿---
 title: Unity MediaFlow Proxy FR
-emoji: FR
 colorFrom: blue
 colorTo: red
 sdk: docker
