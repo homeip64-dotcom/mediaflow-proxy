@@ -14,17 +14,25 @@ def check_auth(
     credentials: HTTPBasicCredentials = Depends(basic),
     authorization: str = Header(None)
 ):
+    # Affiche dans les logs ce que MediaFusion envoie
+    print("DEBUG PARAMS:", request.query_params)
+
     # 1️⃣ BASIC AUTH (Stremio / navigateur)
     if credentials and credentials.password == API_PASSWORD:
         return True
-    # 2️⃣ BEARER TOKEN (option navigateur)
+
+    # 2️⃣ BEARER TOKEN (navigateur / extensions)
     if authorization and authorization.startswith("Bearer ") and authorization[7:] == API_PASSWORD:
         return True
+
     # 3️⃣ QUERY PARAM (MediaFusion)
     if request.query_params.get("api_password") == API_PASSWORD:
         return True
 
+    # Si rien ne correspond → 401
     raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+
+# --- ROUTES ---
 
 @app.get("/")
 def root(auth = Depends(check_auth)):
@@ -38,7 +46,7 @@ def proxy_ip(auth = Depends(check_auth)):
 def manifest(auth = Depends(check_auth)):
     return {
         "id": "homeip.unity.mediaflow.proxy",
-        "version": "1.6.0",
+        "version": "1.6.1",
         "name": "Unity MediaFlow Proxy FR",
         "description": "Proxy Real-Debrid IP France 2025 - Multi-comptes invisible",
         "types": ["movie", "series", "channel"],
