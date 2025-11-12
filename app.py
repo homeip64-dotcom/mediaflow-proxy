@@ -1,25 +1,37 @@
-﻿from fastapi import FastAPI, Depends, HTTPException
+﻿from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import os
 
 app = FastAPI()
-security = HTTPBasic()
+basic = HTTPBasic()
 
-API_PASSWORD = "skystrem-support1@2mail.co"
+# Lit le mot de passe depuis les Secrets HF
+API_PASSWORD = os.getenv("API_PASSWORD")
 
-def verify_password(credentials: HTTPBasicCredentials = Depends(security)):
-    if credentials.password != API_PASSWORD:
-        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
-    return True
+if not API_PASSWORD:
+    raise RuntimeError("API_PASSWORD non défini dans les Secrets")
+
+def check_auth(
+    credentials: HTTPBasicCredentials = Depends(basic),
+    authorization: str = Header(None)
+):
+    pwd = credentials.password
+    if authorization and authorization.startswith("Bearer "):
+        pwd = authorization[7:]
+    
+    if pwd == API_PASSWORD:
+        return True
+    raise HTTPException(status_code=401, detail="Mot de passe incorrect")
 
 @app.get("/")
-def root(auth = Depends(verify_password)):
+def root(auth = Depends(check_auth)):
     return {"message": "Unity MediaFlow Proxy FR - IP France actif"}
 
 @app.get("/manifest.json")
-def manifest(auth = Depends(verify_password)):
+def manifest(auth = Depends(check_auth)):
     return {
         "id": "homeip.unity.mediaflow.proxy",
-        "version": "1.3.0",
+        "version": "1.5.0",
         "name": "Unity MediaFlow Proxy FR",
         "description": "Proxy Real-Debrid IP France 2025 - Multi-comptes invisible",
         "types": ["movie", "series", "channel"],
