@@ -13,7 +13,7 @@ def check_auth(
     credentials: HTTPBasicCredentials = Depends(basic),
     authorization: str = Header(None)
 ):
-    # PRIORITÉ BASIC AUTH (Stremio) → marche à tous les coups
+    # PRIORITÉ BASIC AUTH (Stremio)
     if credentials and credentials.password == API_PASSWORD:
         return True
     # Fallback Bearer (navigateur)
@@ -21,9 +21,19 @@ def check_auth(
         return True
     raise HTTPException(status_code=401, detail="Mot de passe incorrect")
 
+# --- ROUTES ---
+
 @app.get("/")
 def root(auth = Depends(check_auth)):
     return {"message": "Unity MediaFlow Proxy FR - IP France actif"}
+
+@app.get("/proxy/ip")
+def proxy_ip(auth = Depends(check_auth)):
+    """
+    Endpoint utilisé par MediaFusion pour valider le proxy.
+    Retourne simplement un message de confirmation.
+    """
+    return {"status": "ok", "message": "Validation MediaFlow réussie"}
 
 @app.get("/manifest.json")
 def manifest(auth = Depends(check_auth)):
@@ -35,6 +45,6 @@ def manifest(auth = Depends(check_auth)):
         "types": ["movie", "series", "channel"],
         "catalogs": [],
         "resources": ["catalog", "stream", "meta", "subtitles"],
-        "logo": "https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3    fr.svg",
+        "logo": "https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/fr.svg",
         "behaviorHints": {"adult": False, "configurable": False}
     }
