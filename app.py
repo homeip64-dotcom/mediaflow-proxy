@@ -1,7 +1,7 @@
 ﻿from fastapi import FastAPI, Header, HTTPException, Depends, Request
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from urllib.parse import unquote
 import os
-import urllib.parse
 
 app = FastAPI()
 basic = HTTPBasic()
@@ -15,30 +15,23 @@ def check_auth(
     credentials: HTTPBasicCredentials = Depends(basic),
     authorization: str = Header(None)
 ):
-    print("DEBUG PARAMS:", request.query_params)
-
-    # 1️⃣ BASIC AUTH
+    # 1️⃣ BASIC AUTH (Stremio / navigateur)
     if credentials and credentials.password == API_PASSWORD:
         return True
 
-    # 2️⃣ BEARER TOKEN
+    # 2️⃣ BEARER TOKEN (option navigateur)
     if authorization and authorization.startswith("Bearer ") and authorization[7:] == API_PASSWORD:
         return True
 
     # 3️⃣ QUERY PARAM (MediaFusion)
-    query_pass = request.query_params.get("api_password")
-    if query_pass:
-        decoded_pass = urllib.parse.unquote(query_pass)
-        if decoded_pass == API_PASSWORD:
-            return True
+    query_password = request.query_params.get("api_password")
+    if query_password and unquote(query_password) == API_PASSWORD:
+        return True
 
     raise HTTPException(status_code=401, detail="Mot de passe incorrect")
 
-# --- ROUTES ---
-
 @app.get("/")
-def root():
-    # On rend la racine publique pour MediaFusion (juste un ping)
+def root(auth = Depends(check_auth)):
     return {"message": "Unity MediaFlow Proxy FR - Serveur actif"}
 
 @app.get("/proxy/ip")
@@ -49,7 +42,7 @@ def proxy_ip(auth = Depends(check_auth)):
 def manifest(auth = Depends(check_auth)):
     return {
         "id": "homeip.unity.mediaflow.proxy",
-        "version": "1.6.4",
+        "version": "1.6.0",
         "name": "Unity MediaFlow Proxy FR",
         "description": "Proxy Real-Debrid IP France 2025 - Multi-comptes invisible",
         "types": ["movie", "series", "channel"],
