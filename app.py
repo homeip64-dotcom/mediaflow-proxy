@@ -1,45 +1,39 @@
-﻿from fastapi import FastAPI, Header, HTTPException, Depends, Request
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+﻿from fastapi import FastAPI, Request, HTTPException
 from urllib.parse import unquote
 import os
 
 app = FastAPI()
-basic = HTTPBasic()
-API_PASSWORD = os.getenv("API_PASSWORD")
 
-if not API_PASSWORD:
-    raise RuntimeError("API_PASSWORD non défini")
+# Mot de passe d’accès
+API_PASSWORD = os.getenv("API_PASSWORD", "skystrem-support1@2mail.co")
 
-def check_auth(
-    request: Request,
-    credentials: HTTPBasicCredentials = Depends(basic),
-    authorization: str = Header(None)
-):
-    # 1️⃣ BASIC AUTH (Stremio / navigateur)
-    if credentials and credentials.password == API_PASSWORD:
-        return True
+@app.middleware("http")
+async def check_api_password(request: Request, call_next):
+    query_params = dict(request.query_params)
+    api_password = query_params.get("api_password")
 
-    # 2️⃣ BEARER TOKEN (option navigateur)
-    if authorization and authorization.startswith("Bearer ") and authorization[7:] == API_PASSWORD:
-        return True
+    # On décode les caractères URL (%40 → @)
+    if api_password:
+        api_password = unquote(api_password)
 
-    # 3️⃣ QUERY PARAM (MediaFusion)
-    query_password = request.query_params.get("api_password")
-    if query_password and unquote(query_password) == API_PASSWORD:
-        return True
+    # Vérification
+    if api_password == API_PASSWORD:
+        response = await call_next(request)
+        return response
 
-    raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    # Sinon, renvoie 401
+    raise HTTPException(status_code=401, detail="Accès refusé : mot de passe incorrect")
 
 @app.get("/")
-def root(auth = Depends(check_auth)):
-    return {"message": "Unity MediaFlow Proxy FR - Serveur actif"}
+def root():
+    return {"message": "Unity MediaFlow Proxy FR - IP France actif"}
 
 @app.get("/proxy/ip")
-def proxy_ip(auth = Depends(check_auth)):
+def proxy_ip():
     return {"status": "ok", "message": "Validation MediaFlow réussie"}
 
 @app.get("/manifest.json")
-def manifest(auth = Depends(check_auth)):
+def manifest():
     return {
         "id": "homeip.unity.mediaflow.proxy",
         "version": "1.6.0",
