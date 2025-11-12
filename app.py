@@ -46,3 +46,26 @@ def manifest():
         "logo": "https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/fr.svg",
         "behaviorHints": {"adult": False, "configurable": False}
     }
+import httpx
+from fastapi.responses import JSONResponse
+
+TORRENTIO_BASE = "https://torrentio.strem.fun"
+
+@app.get("/proxy/{path:path}")
+async def proxy_to_torrentio(path: str, request: Request, auth = Depends(check_api_password)):
+    """
+    Proxy universel pour Torrentio via MediaFlow FR
+    Permet de faire suivre toutes les requêtes vers torrentio.strem.fun
+    avec authentification et IP française.
+    """
+    target_url = f"{TORRENTIO_BASE}/{path}"
+
+    # Ajoute les query params (ex: providers, qualityfilter, etc.)
+    if request.query_params:
+        target_url += f"?{request.query_params}"
+
+    async with httpx.AsyncClient() as client:
+        r = await client.get(target_url)
+
+    # Retourne la même réponse JSON que Torrentio
+    return JSONResponse(content=r.json(), status_code=r.status_code)
