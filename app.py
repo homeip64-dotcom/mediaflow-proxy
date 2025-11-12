@@ -15,7 +15,6 @@ def check_auth(
     credentials: HTTPBasicCredentials = Depends(basic),
     authorization: str = Header(None)
 ):
-    # Debug
     print("DEBUG PARAMS:", request.query_params)
 
     # 1️⃣ BASIC AUTH
@@ -26,7 +25,7 @@ def check_auth(
     if authorization and authorization.startswith("Bearer ") and authorization[7:] == API_PASSWORD:
         return True
 
-    # 3️⃣ QUERY PARAM (MediaFusion, navigateur, etc.)
+    # 3️⃣ QUERY PARAM (MediaFusion)
     query_pass = request.query_params.get("api_password")
     if query_pass:
         decoded_pass = urllib.parse.unquote(query_pass)
@@ -38,15 +37,9 @@ def check_auth(
 # --- ROUTES ---
 
 @app.get("/")
-def root(request: Request):
-    """
-    Racine : MediaFusion envoie api_password ici.
-    Pas besoin de Depends ici pour éviter conflit BasicAuth vide.
-    """
-    query_pass = request.query_params.get("api_password")
-    if query_pass and urllib.parse.unquote(query_pass) == API_PASSWORD:
-        return {"message": "Unity MediaFlow Proxy FR - IP France actif"}
-    raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+def root():
+    # On rend la racine publique pour MediaFusion (juste un ping)
+    return {"message": "Unity MediaFlow Proxy FR - Serveur actif"}
 
 @app.get("/proxy/ip")
 def proxy_ip(auth = Depends(check_auth)):
@@ -56,7 +49,7 @@ def proxy_ip(auth = Depends(check_auth)):
 def manifest(auth = Depends(check_auth)):
     return {
         "id": "homeip.unity.mediaflow.proxy",
-        "version": "1.6.3",
+        "version": "1.6.4",
         "name": "Unity MediaFlow Proxy FR",
         "description": "Proxy Real-Debrid IP France 2025 - Multi-comptes invisible",
         "types": ["movie", "series", "channel"],
