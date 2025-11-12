@@ -1,32 +1,33 @@
-﻿from fastapi import FastAPI, Request, HTTPException
+﻿from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from urllib.parse import unquote
 import os
 
 app = FastAPI()
 
-# Mot de passe d’accès
+# ✅ Mot de passe par défaut si non défini dans les variables d’environnement
 API_PASSWORD = os.getenv("API_PASSWORD", "skystrem-support1@2mail.co")
 
 @app.middleware("http")
 async def check_api_password(request: Request, call_next):
-    query_params = dict(request.query_params)
-    api_password = query_params.get("api_password")
+    # On laisse passer la page racine sans auth (utile pour Hugging Face)
+    if request.url.path == "/":
+        return JSONResponse({"message": "Unity MediaFlow Proxy FR - IP France actif"})
 
-    # On décode les caractères URL (%40 → @)
+    # Récupération du mot de passe dans les query params
+    api_password = request.query_params.get("api_password")
     if api_password:
-        api_password = unquote(api_password)
+        api_password = unquote(api_password)  # %40 → @
 
     # Vérification
     if api_password == API_PASSWORD:
-        response = await call_next(request)
-        return response
+        return await call_next(request)
 
-    # Sinon, renvoie 401
-    raise HTTPException(status_code=401, detail="Accès refusé : mot de passe incorrect")
-
-@app.get("/")
-def root():
-    return {"message": "Unity MediaFlow Proxy FR - IP France actif"}
+    # Sinon, 401 clair
+    return JSONResponse(
+        {"error": "Accès refusé : mot de passe incorrect ou manquant"},
+        status_code=401
+    )
 
 @app.get("/proxy/ip")
 def proxy_ip():
